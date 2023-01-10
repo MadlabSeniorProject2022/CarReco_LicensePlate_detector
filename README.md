@@ -1,8 +1,9 @@
 # Lean Detector
 
-** For detection that source is static file only.
+** Original source code for yolov7 from https://github.com/WongKinYiu/yolov7
 
 Implement detect function for yolo model that use in web sevice.
+- Can detect image of video that source is static file only.
 - Reduce time to reload same model when get new request.
 - Implement structure easier to call and handle result after detected.
 
