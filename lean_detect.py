@@ -1,20 +1,12 @@
-import argparse
-from fileinput import filename
-from itertools import count
-import time
 import os
-from pathlib import Path
-
 
 import torch
-import torch.backends.cudnn as cudnn
 from numpy import random
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
-from utils.plots import plot_one_box, crop_plot
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -22,11 +14,14 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 random.seed(1)
 
 class UseModel:
-    def __init__(self, weights, device, normalize_size = 640, is_trace = True) -> None:
+    def __init__(self, weights, device = "", confident = 0.25, iou = 0.45, detect_class = None, normalize_size = 640, is_trace = True) -> None:
         set_logging()
         self.device = select_device(device)
         self.half = self.device.type != 'cpu'  # half precision only supported on CUDA
         self.norm_size = normalize_size
+        self.detect_class = detect_class
+        self.confident = confident
+        self.iou = iou
         # Load model
         model = attempt_load(weights, map_location=self.device)  # load FP32 model
         self.stride = int(model.stride.max())  # model stride
@@ -44,7 +39,7 @@ class UseModel:
         
         self.model = model
 
-    def detect (self, source, confident = 0.25, iou = 0.45, detect_class = None, do_function = None):
+    def detect (self, source, do_function = None):
         old_img_w = old_img_h = self.norm_size
         old_img_b = 1
         dataset = LoadImages(source, img_size=self.norm_size, stride=self.stride)
@@ -65,7 +60,7 @@ class UseModel:
                     self.model(img, augment=False)[0]
 
             pred = self.model(img, augment=False)[0]    
-            pred = non_max_suppression(pred, confident, iou, classes=detect_class, agnostic=False)
+            pred = non_max_suppression(pred, self.confident, self.iou, classes=self.detect_class, agnostic=False)
 
             # Do function that include
             #if do_function != None:
@@ -79,7 +74,6 @@ class UseModel:
                 gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]
                 if len(det):
                     # Rescale boxes from img_size to im0 size
-                    print("find")
                     det[:, :4] = scale_coords(
                         img.shape[2:], det[:, :4], im0.shape).round()
 
