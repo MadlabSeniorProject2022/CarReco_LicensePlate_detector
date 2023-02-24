@@ -1,3 +1,5 @@
 /runs/*
 /src/*
-/__pycache__/*
+*/__pycache__/*
+
+/up_scale
